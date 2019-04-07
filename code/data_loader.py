@@ -33,13 +33,19 @@ class MelanomaDataLoader(data.Dataset):
       raise ValueError(
         'Label folder {:s} does not exist!'.format(folder))
     
-    masks = []
     if split == "train":
-      for itr in range(1, 1568):
-        filename = "ISIC_Mask_" + i + ".png"
-        mask = np.ascontiguousarray(load_image(os.path.join(folder,filename)))
-        if mask is not None:
-          masks.append(mask)
+      start, end = 1, 1568 #count = 1567
+    elif split == "val":
+      start, end = 1568, 2081 #count = 513
+    elif split == "test":
+      start, end = 2081, 2595 #count = 514
+
+    masks = []
+    for itr in range(start, end):
+      filename = "ISIC_Mask_" + i + ".png"
+      mask = np.ascontiguousarray(load_image(os.path.join(folder,filename)))
+      if mask is not None:
+        masks.append(mask)
 
     # load input images
     if folder is None:
@@ -49,13 +55,11 @@ class MelanomaDataLoader(data.Dataset):
         'Input folder {:s} does not exist!'.format(folder))
     
     images = []
-    if split == "train":
-      #60% of data
-      for itr in range(1, 1568):
-        filename = "ISIC_Input_" + i + ".jpg"
-        img = np.ascontiguousarray(load_image(os.path.join(folder,filename)))
-        if img is not None:
-          images.append(img)
+    for itr in range(start, end):
+      filename = "ISIC_Input_" + i + ".jpg"
+      img = np.ascontiguousarray(load_image(os.path.join(folder,filename)))
+      if img is not None:
+        images.append(img)
 
     self.images = images
     self.masks = masks
