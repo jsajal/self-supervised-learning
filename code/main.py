@@ -75,3 +75,10 @@ def main(args):
     print('You are using CPU for computing!',
           'Yet we assume you are using a GPU.',
           'You will NOT be able to switch between CPU and GPU training!')
+
+  train_dataloader = MelanomaDataLoader(args.data_folder,
+  	                                         split="train")
+  val_dataloader = MelanomaDataLoader(args.data_folder,
+  	                                         split="val")
+  test_dataloader = MelanomaDataLoader(args.data_folder,
+  	                                         split="test")
