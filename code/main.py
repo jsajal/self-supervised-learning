@@ -76,9 +76,19 @@ def main(args):
           'Yet we assume you are using a GPU.',
           'You will NOT be able to switch between CPU and GPU training!')
 
-  train_dataloader = MelanomaDataLoader(args.data_folder,
+  train_dataset = MelanomaDataLoader(args.data_folder,
   	                                         split="train")
-  val_dataloader = MelanomaDataLoader(args.data_folder,
+  val_dataset = MelanomaDataLoader(args.data_folder,
   	                                         split="val")
-  test_dataloader = MelanomaDataLoader(args.data_folder,
+  test_dataset = MelanomaDataLoader(args.data_folder,
   	                                         split="test")
+
+  train_loader = torch.utils.data.DataLoader(
+    train_dataset, batch_size=args.batch_size, shuffle=True,
+    num_workers=args.workers, pin_memory=True, sampler=None, drop_last=False)
+  val_loader = torch.utils.data.DataLoader(
+    val_dataset, batch_size=100, shuffle=False,
+    num_workers=args.workers, pin_memory=True, sampler=None, drop_last=False)
+  test_loader = torch.utils.data.DataLoader(
+    val_dataset, batch_size=100, shuffle=False,
+    num_workers=args.workers, pin_memory=True, sampler=None, drop_last=False)

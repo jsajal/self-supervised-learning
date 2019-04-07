@@ -34,11 +34,11 @@ class MelanomaDataLoader(data.Dataset):
         'Label folder {:s} does not exist!'.format(folder))
     
     if split == "train":
-      start, end = 1, 1568 #count = 1567
+      start, end = 1, 1597 #count = 1596
     elif split == "val":
-      start, end = 1568, 2081 #count = 513
+      start, end = 1596, 2096 #count = 500
     elif split == "test":
-      start, end = 2081, 2595 #count = 514
+      start, end = 2095, 2595 #count = 500
 
     masks = []
     for itr in range(start, end):
