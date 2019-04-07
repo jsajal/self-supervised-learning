@@ -11,11 +11,11 @@ import numpy as np
 
 class MelanomaDataLoader(data.Dataset):
   """
-  A simple dataloader for mini places
+  A simple dataloader for melanoma dataset
   """
   def __init__(self,
                root_folder,
-               label_file=None,
+               folder=None,
                num_classes=100,
                split="train",
                transforms=None):
@@ -27,34 +27,47 @@ class MelanomaDataLoader(data.Dataset):
     self.n_classes = num_classes
 
     # load all labels
-    if label_file is None:
-      label_file = os.path.join(root_folder, split + '.txt')
-    if not os.path.exists(label_file):
+    if folder is None:
+      folder = os.path.join(root_folder, "ISIC2018_Task1_Training_GroundTruth")
+    if not os.path.exists(folder):
       raise ValueError(
-        'Label file {:s} does not exist!'.format(label_file))
-    with open(label_file) as f:
-      lines = f.readlines()
+        'Label folder {:s} does not exist!'.format(folder))
+    
+    masks = []
+    if split == "train":
+      for itr in range(1, 1568):
+        filename = "ISIC_Mask_" + i + ".png"
+        mask = np.ascontiguousarray(load_image(os.path.join(folder,filename)))
+        if mask is not None:
+          masks.append(mask)
 
-    # store the file list
-    file_label_list = []
-    for line in lines:
-      filename, label_id = line.rstrip('\n').split(' ')
-      label_id = int(label_id)
-      filename = os.path.join(root_folder, "images", filename)
-      file_label_list.append((filename, label_id))
+    # load input images
+    if folder is None:
+      folder = os.path.join(root_folder, "ISIC2018_Task1-2_Training_Input")
+    if not os.path.exists(folder):
+      raise ValueError(
+        'Input folder {:s} does not exist!'.format(folder))
+    
+    images = []
+    if split == "train":
+      #60% of data
+      for itr in range(1, 1568):
+        filename = "ISIC_Input_" + i + ".jpg"
+        img = np.ascontiguousarray(load_image(os.path.join(folder,filename)))
+        if img is not None:
+          images.append(img)
 
-    self.file_label_list = file_label_list
+    self.images = images
+    self.masks = masks
 
   def __len__(self):
-    return len(self.file_label_list)
+    return len(self.images)
 
   def __getitem__(self, index):
     # load img and label
-    filename, label_id = self.file_label_list[index]
-    img = np.ascontiguousarray(load_image(filename))
-    label = label_id
+    img, mask = self.images[index], self.masks[index]
 
     # apply data augmentation
     if self.transforms is not None:
       img  = self.transforms(img)
-    return img, label
+    return img, mask
