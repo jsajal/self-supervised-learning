@@ -1,2 +1,2 @@
 # CS838_Project
-Final project for Learning Based methods in Computer Vision
+Semi Supervised Learning based Image Segmentation for melanomia skin cancer dataset
