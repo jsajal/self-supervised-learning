@@ -21,6 +21,7 @@ import torch.utils.data
 from tensorboardX import SummaryWriter
 
 from model import preTrain_model
+from model import imgSeg_model
 
 from data_loader import MelanomaDataLoader
 
@@ -69,7 +70,7 @@ parser.add_argument('--gpu', default=0, type=int,
 writer = SummaryWriter('../logs')
 
 # main function for training and testing
-def main(args):
+def main(args):	
   # parse args
   best_acc1 = 1000000#0.0
 
@@ -118,8 +119,10 @@ def main(args):
   	model = preTrain_model()
   	criterion = nn.MSELoss()
   else: # Train in fully supervised mode
-  	model = preTrain_model()
-  	criterion = nn.MSELoss()
+  	initial_param = {}
+  	load_checkpoint(initial_param)
+  	model = imgSeg_model(initial_param=initial_param)
+  	criterion = nn.BCELoss()
   model_arch = "UNet"
 
   # put everthing to gpu
@@ -161,13 +164,35 @@ def main(args):
 def save_checkpoint(state, is_best,
                     file_folder="../models/", filename='checkpoint_preTrain.pth.tar'):
   """save checkpoint"""
+  if args.mode == "preTrain":
+  	filename = 'checkpoint_preTrain.pth.tar'
+  else:
+  	filename = 'checkpoint_final.pth.tar'
+
   if not os.path.exists(file_folder):
     os.mkdir(file_folder)
   torch.save(state, os.path.join(file_folder, filename))
   if is_best:
     # skip the optimization state
     state.pop('optimizer', None)
-    torch.save(state, os.path.join(file_folder, 'model_best_preTrain.pth.tar'))
+    if args.mode == "preTrain":
+    	torch.save(state, os.path.join(file_folder, 'model_best_preTrain.pth.tar'))
+    else:
+    	torch.save(state, os.path.join(file_folder, 'model_best_final.pth.tar'))
+
+def load_checkpoint(initial_param,
+	                modelClass=preTrain_model, file_folder="../models/", filename='checkpoint_preTrain.pth.tar'):
+  """load checkpoint"""
+  if not os.path.exists(file_folder):
+    os.mkdir(file_folder)
+
+  PATH = os.path.join(file_folder, filename)
+  model = modelClass()
+  checkpoint = torch.load(PATH)
+  model.load_state_dict(checkpoint['state_dict'])
+  for param_tensor in model.state_dict():
+  	initial_param[param_tensor] = model.state_dict()[param_tensor]
+  	#print(param_tensor, "\t", model.state_dict()[param_tensor].size())
 
 def train(train_loader, model, criterion, optimizer, epoch, stage, args):
   """Training the model"""
