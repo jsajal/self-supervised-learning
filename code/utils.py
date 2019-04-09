@@ -6,10 +6,13 @@ import cv2
 from PIL import Image
 import numpy as np
 
-def load_image(path):
-  # load an image
-  img = cv2.imread(path)
-  img = img[:, :, ::-1]  # BGR -> RGB
+def load_image(path, flag):
+  # load an RGB image
+  if flag == 1:
+  	img = cv2.imread(path)
+  	img = img[:, :, ::-1] # BGR -> RGB
+  else:
+  	img = cv2.imread(path, 0)
   return img
 
 def save_image(path, img):
