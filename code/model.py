@@ -14,7 +14,7 @@ from utils import resize_image
 
 
 #################################################################################
-# Modelling
+# Modelling - UNet
 #################################################################################
 
 class SelfSupervised(nn.Module):
@@ -69,7 +69,7 @@ class SelfSupervised(nn.Module):
     self.up1 = nn.Sequential(
       #upSample
       nn.Upsample(scale_factor=2, mode='bilinear'), # [-1, 1024, 64, 64]
-      conv_op(1024, 512, kernel_size=2, stride=1, padding=1), # [-1, 512, 64, 64]
+      conv_op(1024, 512, kernel_size=1, stride=1, padding=0), # [-1, 512, 64, 64]
     )
     self.up1conv = nn.Sequential(
       #conv block
@@ -81,7 +81,7 @@ class SelfSupervised(nn.Module):
     self.up2 = nn.Sequential(
       #upSample
       nn.Upsample(scale_factor=2, mode='bilinear'), # [-1, 512, 128, 128]
-      conv_op(512, 256, kernel_size=2, stride=1, padding=1), # [-1, 256, 128, 128]
+      conv_op(512, 256, kernel_size=1, stride=1, padding=0), # [-1, 256, 128, 128]
     )
     self.up2conv = nn.Sequential(
       #conv block
@@ -93,7 +93,7 @@ class SelfSupervised(nn.Module):
     self.up3 = nn.Sequential(
       #upSample
       nn.Upsample(scale_factor=2, mode='bilinear'), # [-1, 256, 256, 256]
-      conv_op(256, 128, kernel_size=2, stride=1, padding=1), # [-1, 128, 256, 256]
+      conv_op(256, 128, kernel_size=1, stride=1, padding=0), # [-1, 128, 256, 256]
     )
     self.up3conv = nn.Sequential(
       #conv block
@@ -105,7 +105,7 @@ class SelfSupervised(nn.Module):
     self.up4 = nn.Sequential(
       #upSample
       nn.Upsample(scale_factor=2, mode='bilinear'), # [-1, 128, 512, 512]
-      conv_op(128, 64, kernel_size=2, stride=1, padding=1), # [-1, 64, 512, 512]
+      conv_op(128, 64, kernel_size=1, stride=1, padding=0), # [-1, 64, 512, 512]
     )
     self.up4conv = nn.Sequential(
       #conv block
@@ -130,18 +130,18 @@ class SelfSupervised(nn.Module):
     x6 = self.up1(x5)
     x6 = torch.cat((x4, x6), dim=1)
     x6 = self.up1conv(x6)
-    x7 = self.up1(x6)
+    x7 = self.up2(x6)
     x7 = torch.cat((x3, x7), dim=1)
-    x7 = self.up1conv(x7)
-    x8 = self.up1(x7)
+    x7 = self.up2conv(x7)
+    x8 = self.up3(x7)
     x8 = torch.cat((x2, x8), dim=1)
-    x8 = self.up1conv(x8)
-    x9 = self.up1(x8)
+    x8 = self.up3conv(x8)
+    x9 = self.up4(x8)
     x9 = torch.cat((x1, x9), dim=1)
-    x9 = self.up1conv(x9)
+    x9 = self.up4conv(x9)
 
     xOutput = self.output(x9)
-    return x
+    return xOutput
 
 # change this to your model!
 preTrain_model = SelfSupervised
