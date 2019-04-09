@@ -26,6 +26,8 @@ from data_loader import MelanomaDataLoader
 
 import data_transform as transforms
 
+from utils import AverageMeter
+
 # the arg parser
 parser = argparse.ArgumentParser(description='PyTorch Image Classification')
 parser.add_argument('data_folder', metavar='DIR',
@@ -38,9 +40,9 @@ parser.add_argument('--mode', default='', type=str,
                     help='determine mode of training , either self-supervised (preTrain) or fully supervised (supTrain)')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('-b', '--batch-size', default=30, type=int,
+parser.add_argument('-b', '--batch-size', default=1, type=int,
                     metavar='N',
-                    help='mini-batch size (default: 30)')
+                    help='mini-batch size (default: 1)')
 parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
                     metavar='LR', help='initial learning rate', dest='lr')
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
@@ -79,6 +81,7 @@ def main(args):
           'You will NOT be able to switch between CPU and GPU training!')
 
   # train transforms
+  print('Loading training, validation and test dataset......')
   train_transforms = []
   train_transforms.append(transforms.Scale((512, 512)))
   train_transforms.append(transforms.ToTensor())
@@ -105,18 +108,19 @@ def main(args):
     train_dataset, batch_size=args.batch_size, shuffle=True,
     num_workers=args.workers, pin_memory=True, sampler=None, drop_last=True)
   val_loader = torch.utils.data.DataLoader(
-    val_dataset, batch_size=25, shuffle=False,
+    val_dataset, batch_size=1, shuffle=False,
     num_workers=args.workers, pin_memory=True, sampler=None, drop_last=False)
   test_loader = torch.utils.data.DataLoader(
-    val_dataset, batch_size=25, shuffle=False,
+    val_dataset, batch_size=1, shuffle=False,
     num_workers=args.workers, pin_memory=True, sampler=None, drop_last=False)
 
-  if mode == "preTrain": # Train in self supervised mode
+  if args.mode == "preTrain": # Train in self supervised mode
   	model = preTrain_model()
   	criterion = nn.MSELoss()
   else: # Train in fully supervised mode
   	model = preTrain_model()
   	criterion = nn.MSELoss()
+  model_arch = "UNet"
 
   # put everthing to gpu
   if args.gpu >= 0:
@@ -124,7 +128,7 @@ def main(args):
     criterion = criterion.cuda(args.gpu)
 
   # setup the optimizer
-  optimizer = torch.optim.Adam(model.parameters(), args.lr,
+  optimizer = torch.optim.SGD(model.parameters(), args.lr,
                 momentum=args.momentum,
                 weight_decay=args.weight_decay)
 
@@ -140,7 +144,7 @@ def main(args):
 
     # evaluate on validation set
     #acc1 = validate(val_loader, model, epoch, args)
-    val_loss = validate(val_loader, model, epoch, args)
+    val_loss = validate(val_loader, model, criterion, epoch, args)
 
     # remember best acc@1 and save checkpoint
     is_best = val_loss < best_acc1
@@ -193,6 +197,9 @@ def train(train_loader, model, criterion, optimizer, epoch, stage, args):
 
     # measure data loading time
     data_time.update(time.time() - end)
+    #self supervised mode
+    if args.mode == "preTrain":
+    	target = input
     if args.gpu >= 0:
     	input = input.cuda(args.gpu, non_blocking=True)
     	target = target.cuda(args.gpu, non_blocking=True)
@@ -241,7 +248,7 @@ def train(train_loader, model, criterion, optimizer, epoch, stage, args):
   #writer.add_scalars('data/top5_accuracy',
   #  {"train" : top5.avg}, epoch + 1)
 
-def validate(val_loader, model, epoch, args, attacker=None, visualizer=None):
+def validate(val_loader, model, criterion, epoch, args, attacker=None, visualizer=None):
   """Test the model on the validation set"""
   batch_time = AverageMeter()
   losses = AverageMeter()
@@ -255,13 +262,16 @@ def validate(val_loader, model, epoch, args, attacker=None, visualizer=None):
     end = time.time()
     # loop over validation set
     for i, (input, target) in enumerate(val_loader):
+      #self supervised mode
+      if args.mode == "preTrain":
+      	target = input	
       if args.gpu >= 0:
         input = input.cuda(args.gpu, non_blocking=False)
         target = target.cuda(args.gpu, non_blocking=False)
 
       # forward the model
       output = model(input)
-      loss = criterion(input, output)
+      loss = criterion(output, target)
 
       # measure accuracy and record loss
       #acc = accuracy(output, target)
@@ -285,7 +295,7 @@ def validate(val_loader, model, epoch, args, attacker=None, visualizer=None):
         #  vis_output = default_visfunction(input, vis_output=vis_output)
         #  writer.add_image("Image/Image_Atten", vis_output, i)
 
-  print('******Final Loss {losses.avg:.3f}'.format(
+  print('******Loss on val/test set = {losses.avg:.3f}'.format(
             losses=losses))
 
   if (not args.evaluate):
