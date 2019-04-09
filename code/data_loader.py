@@ -34,29 +34,28 @@ class MelanomaDataLoader(data.Dataset):
         'Label folder {:s} does not exist!'.format(folder))
     
     if split == "train":
-      start, end = 1, 1597 #count = 1596
+      start, end = 1, 31 #1, 1597 #count = 1596
     elif split == "val":
-      start, end = 1596, 2096 #count = 500
+      start, end = 31, 61 #1596, 2096 #count = 500
     elif split == "test":
-      start, end = 2095, 2595 #count = 500
+      start, end = 61, 91 #2095, 2595 #count = 500
 
     masks = []
     for itr in range(start, end):
-      filename = "ISIC_Mask_" + i + ".png"
+      filename = "ISIC_Mask_" + str(itr) + ".png"
       mask = np.ascontiguousarray(load_image(os.path.join(folder,filename)))
       if mask is not None:
         masks.append(mask)
 
     # load input images
-    if folder is None:
-      folder = os.path.join(root_folder, "ISIC2018_Task1-2_Training_Input")
+    folder = os.path.join(root_folder, "ISIC2018_Task1-2_Training_Input")
     if not os.path.exists(folder):
       raise ValueError(
         'Input folder {:s} does not exist!'.format(folder))
     
     images = []
     for itr in range(start, end):
-      filename = "ISIC_Input_" + i + ".jpg"
+      filename = "ISIC_Input_" + str(itr) + ".jpg"
       img = np.ascontiguousarray(load_image(os.path.join(folder,filename)))
       if img is not None:
         images.append(img)
