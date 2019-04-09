@@ -43,7 +43,7 @@ class MelanomaDataLoader(data.Dataset):
     masks = []
     for itr in range(start, end):
       filename = "ISIC_Mask_" + str(itr) + ".png"
-      mask = np.ascontiguousarray(load_image(os.path.join(folder,filename)))
+      mask = np.ascontiguousarray(load_image(os.path.join(folder,filename), 0))
       if mask is not None:
         masks.append(mask)
 
@@ -56,7 +56,7 @@ class MelanomaDataLoader(data.Dataset):
     images = []
     for itr in range(start, end):
       filename = "ISIC_Input_" + str(itr) + ".jpg"
-      img = np.ascontiguousarray(load_image(os.path.join(folder,filename)))
+      img = np.ascontiguousarray(load_image(os.path.join(folder,filename), 1))
       if img is not None:
         images.append(img)
 
@@ -73,4 +73,5 @@ class MelanomaDataLoader(data.Dataset):
     # apply data augmentation
     if self.transforms is not None:
       img  = self.transforms(img)
+      mask  = self.transforms(mask)
     return img, mask
