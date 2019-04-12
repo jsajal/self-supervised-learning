@@ -34,11 +34,11 @@ class MelanomaDataLoader(data.Dataset):
         'Label folder {:s} does not exist!'.format(folder))
     
     if split == "train":
-      start, end = 1, 31 #1, 1597 #count = 1596
+      start, end = 1, 91 #1, 1597 #count = 1596
     elif split == "val":
-      start, end = 31, 61 #1596, 2096 #count = 500
+      start, end = 91, 121 #1596, 2096 #count = 500
     elif split == "test":
-      start, end = 61, 91 #2095, 2595 #count = 500
+      start, end = 121, 151 #2095, 2595 #count = 500
 
     masks = []
     for itr in range(start, end):
@@ -74,4 +74,6 @@ class MelanomaDataLoader(data.Dataset):
     if self.transforms is not None:
       img  = self.transforms(img)
       mask  = self.transforms(mask)
+      mask[mask > 0.5] = 1
+      mask[mask <= 0.5] = 0
     return img, mask
