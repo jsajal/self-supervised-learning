@@ -17,7 +17,7 @@ def load_image(path, flag):
 
 def save_image(path, img):
   img = img.copy()[:,:,::-1]
-  return cv2.imwrite(path, img)
+  return cv2.imwrite(path, img, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
 
 def resize_image(img, new_size, interpolation=cv2.INTER_LINEAR):
   # resize an image into new_size (w * h) using specified interpolation
