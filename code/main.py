@@ -16,18 +16,23 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
+import numpy as np
+
+import torchvision
 
 # for visualization
 from tensorboardX import SummaryWriter
 
 from model import preTrain_model
 from model import imgSeg_model
+from model import uNet_model
 
 from data_loader import MelanomaDataLoader
 
 import data_transform as transforms
 
 from utils import AverageMeter
+from utils import save_image
 
 # the arg parser
 parser = argparse.ArgumentParser(description='PyTorch Image Classification')
@@ -89,12 +94,12 @@ def main(args):
   train_transforms = transforms.Compose(train_transforms)
   # val transforms
   val_transforms=[]
-  val_transforms.append(transforms.Scale((512, 512), interpolations=None))
+  val_transforms.append(transforms.Scale((512, 512)))
   val_transforms.append(transforms.ToTensor())
   val_transforms = transforms.Compose(val_transforms)
   # test transforms
   test_transforms=[]
-  test_transforms.append(transforms.Scale((512, 512), interpolations=None))
+  test_transforms.append(transforms.Scale((512, 512)))
   test_transforms.append(transforms.ToTensor())
   test_transforms = transforms.Compose(test_transforms)
 
@@ -131,13 +136,20 @@ def main(args):
     criterion = criterion.cuda(args.gpu)
 
   # setup the optimizer
-  optimizer = torch.optim.SGD(model.parameters(), args.lr,
+  if args.mode == "preTrain":
+  	optimizer = torch.optim.SGD(model.parameters(), args.lr,
                 momentum=args.momentum,
+                weight_decay=args.weight_decay)
+  else:
+  	optimizer = torch.optim.SGD(model.parameters(), args.lr,
+  		        momentum=args.momentum,
                 weight_decay=args.weight_decay)
 
   # enable cudnn benchmark
   cudnn.enabled = True
   cudnn.benchmark = True
+  print(optimizer)
+  print(criterion)
 
   # start the training
   print("Training the model ...")
@@ -181,7 +193,7 @@ def save_checkpoint(state, is_best,
     	torch.save(state, os.path.join(file_folder, 'model_best_final.pth.tar'))
 
 def load_checkpoint(initial_param,
-	                modelClass=preTrain_model, file_folder="../models/", filename='checkpoint_preTrain.pth.tar'):
+	                modelClass=preTrain_model, file_folder="../models/", filename='model_best_preTrain.pth.tar'):
   """load checkpoint"""
   if not os.path.exists(file_folder):
     os.mkdir(file_folder)
@@ -199,7 +211,6 @@ def train(train_loader, model, criterion, optimizer, epoch, stage, args):
   assert stage in ["train"]
   # adjust the learning rate
   num_iters = len(train_loader)
-  lr = 0.0
 
   # set up meters
   batch_time = AverageMeter()
@@ -214,17 +225,23 @@ def train(train_loader, model, criterion, optimizer, epoch, stage, args):
   for i, (input, target) in enumerate(train_loader):
     # adjust the learning rate
     # cosine learning rate decay
-    lr = 0.5 * args.lr * (1 + math.cos(
-    	(epoch * num_iters + i) / float(args.epochs * num_iters) * math.pi))
-    for param_group in optimizer.param_groups:
-    	param_group['lr'] = lr
-    	param_group['weight_decay'] = args.weight_decay
+    if args.mode == "preTrain":
+    	lr = 0.5 * args.lr * (1 + math.cos(
+    		(epoch * num_iters + i) / float(args.epochs * num_iters) * math.pi))
+    	for param_group in optimizer.param_groups:
+    		param_group['lr'] = lr
+    		param_group['weight_decay'] = args.weight_decay
+    else:
+    	lr = 0.001
+    	for param_group in optimizer.param_groups:
+    		param_group['lr'] = lr
+    		param_group['weight_decay'] = args.weight_decay
 
     # measure data loading time
     data_time.update(time.time() - end)
     #self supervised mode
-    if args.mode == "preTrain":
-    	target = input
+    #if args.mode == "preTrain":
+    #	target = input
     if args.gpu >= 0:
     	input = input.cuda(args.gpu, non_blocking=True)
     	target = target.cuda(args.gpu, non_blocking=True)
@@ -296,6 +313,22 @@ def validate(val_loader, model, criterion, epoch, args, attacker=None, visualize
 
       # forward the model
       output = model(input)
+      if args.mode == "preTrain":
+      	file_folder = "../selfsupOutput/"
+      	if not os.path.exists(file_folder):
+      		os.mkdir(file_folder)
+      	inp = input.cpu()
+      	out = output.cpu()
+      	torchvision.utils.save_image(inp, os.path.join(file_folder, "val_inp_" + str(i) +".jpg"))
+      	torchvision.utils.save_image(out, os.path.join(file_folder, "val_out_" + str(i) +".jpg"))
+      else:
+      	file_folder = "../imgSegOutput/"
+      	if not os.path.exists(file_folder):
+      		os.mkdir(file_folder)
+      	inp = input.cpu()
+      	out = output.cpu()
+      	torchvision.utils.save_image(inp, os.path.join(file_folder, "val_inp_" + str(i) +".jpg"))
+      	torchvision.utils.save_image(out, os.path.join(file_folder, "val_out_" + str(i) +".png"))
       loss = criterion(output, target)
 
       # measure accuracy and record loss
