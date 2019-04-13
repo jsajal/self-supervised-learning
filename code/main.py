@@ -232,7 +232,7 @@ def train(train_loader, model, criterion, optimizer, epoch, stage, args):
     		param_group['lr'] = lr
     		param_group['weight_decay'] = args.weight_decay
     else:
-    	lr = 0.001
+    	lr = args.lr
     	for param_group in optimizer.param_groups:
     		param_group['lr'] = lr
     		param_group['weight_decay'] = args.weight_decay
@@ -240,8 +240,8 @@ def train(train_loader, model, criterion, optimizer, epoch, stage, args):
     # measure data loading time
     data_time.update(time.time() - end)
     #self supervised mode
-    #if args.mode == "preTrain":
-    #	target = input
+    if args.mode == "preTrain":
+    	target = input
     if args.gpu >= 0:
     	input = input.cuda(args.gpu, non_blocking=True)
     	target = target.cuda(args.gpu, non_blocking=True)
