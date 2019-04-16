@@ -38,8 +38,8 @@ from utils import save_image
 parser = argparse.ArgumentParser(description='PyTorch Image Classification')
 parser.add_argument('data_folder', metavar='DIR',
                     help='path to dataset')
-parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
-                    help='number of data loading workers (default: 4)')
+parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
+                    help='number of data loading workers (default: 0)')
 parser.add_argument('--epochs', default=90, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--mode', default='', type=str,
@@ -86,41 +86,8 @@ def main(args):
           'Yet we assume you are using a GPU.',
           'You will NOT be able to switch between CPU and GPU training!')
 
-  # train transforms
-  print('Loading training, validation and test dataset......')
-  train_transforms = []
-  train_transforms.append(transforms.Scale((512, 512)))
-  train_transforms.append(transforms.ToTensor())
-  train_transforms = transforms.Compose(train_transforms)
-  # val transforms
-  val_transforms=[]
-  val_transforms.append(transforms.Scale((512, 512)))
-  val_transforms.append(transforms.ToTensor())
-  val_transforms = transforms.Compose(val_transforms)
-  # test transforms
-  test_transforms=[]
-  test_transforms.append(transforms.Scale((512, 512)))
-  test_transforms.append(transforms.ToTensor())
-  test_transforms = transforms.Compose(test_transforms)
-
-  train_dataset = MelanomaDataLoader(args.data_folder,
-  	                                         split="train", transforms=train_transforms)
-  val_dataset = MelanomaDataLoader(args.data_folder,
-  	                                         split="val", transforms=val_transforms)
-  test_dataset = MelanomaDataLoader(args.data_folder,
-  	                                         split="test", transforms=test_transforms)
-
-  train_loader = torch.utils.data.DataLoader(
-    train_dataset, batch_size=args.batch_size, shuffle=True,
-    num_workers=args.workers, pin_memory=True, sampler=None, drop_last=True)
-  val_loader = torch.utils.data.DataLoader(
-    val_dataset, batch_size=1, shuffle=False,
-    num_workers=args.workers, pin_memory=True, sampler=None, drop_last=False)
-  test_loader = torch.utils.data.DataLoader(
-    val_dataset, batch_size=1, shuffle=False,
-    num_workers=args.workers, pin_memory=True, sampler=None, drop_last=False)
-
-  if args.mode == "preTrain": # Train in self supervised mode
+  # Train in self supervised mode
+  if args.mode == "preTrain":
   	model = preTrain_model()
   	criterion = nn.MSELoss()
   else: # Train in fully supervised mode
@@ -144,6 +111,58 @@ def main(args):
   	optimizer = torch.optim.SGD(model.parameters(), args.lr,
   		        momentum=args.momentum,
                 weight_decay=args.weight_decay)
+
+  if args.resume:
+  	if os.path.isfile(args.resume):
+  		print("=> loading checkpoint '{}'".format(args.resume))
+  		checkpoint = torch.load(args.resume)
+  		args.start_epoch = checkpoint['epoch']
+  		best_acc1 = checkpoint['best_acc1']
+  		model.load_state_dict(checkpoint['state_dict'])
+  		if args.gpu < 0:
+  			model = model.cpu()
+  		else:
+  			model = model.cuda(args.gpu)
+
+  		optimizer.load_state_dict(checkpoint['optimizer'])
+  		print("=> loaded checkpoint '{}' (epoch {}, acc1 {})"
+  			.format(args.resume, checkpoint['epoch'], best_acc1))
+  	else:
+  		print("=> no checkpoint found at '{}'".format(args.resume))
+  
+  # train transforms
+  print('Loading training, validation and test dataset......')
+  train_transforms = []
+  train_transforms.append(transforms.Scale((512, 512)))
+  train_transforms.append(transforms.ToTensor())
+  train_transforms = transforms.Compose(train_transforms)
+  # val transforms
+  val_transforms=[]
+  val_transforms.append(transforms.Scale((512, 512)))
+  val_transforms.append(transforms.ToTensor())
+  val_transforms = transforms.Compose(val_transforms)
+  # test transforms
+  #test_transforms=[]
+  #test_transforms.append(transforms.Scale((512, 512)))
+  #test_transforms.append(transforms.ToTensor())
+  #test_transforms = transforms.Compose(test_transforms)
+
+  train_dataset = MelanomaDataLoader(args.data_folder,
+  	                                         split="train", transforms=train_transforms)
+  val_dataset = MelanomaDataLoader(args.data_folder,
+  	                                         split="val", transforms=val_transforms)
+  #test_dataset = MelanomaDataLoader(args.data_folder,
+  #	                                         split="test", transforms=test_transforms)
+
+  train_loader = torch.utils.data.DataLoader(
+    train_dataset, batch_size=args.batch_size, shuffle=True,
+    num_workers=args.workers, pin_memory=True, sampler=None, drop_last=True)
+  val_loader = torch.utils.data.DataLoader(
+    val_dataset, batch_size=1, shuffle=False,
+    num_workers=args.workers, pin_memory=True, sampler=None, drop_last=False)
+  #test_loader = torch.utils.data.DataLoader(
+  #  test_dataset, batch_size=1, shuffle=False,
+  #  num_workers=args.workers, pin_memory=True, sampler=None, drop_last=False)
 
   # enable cudnn benchmark
   cudnn.enabled = True
@@ -239,16 +258,18 @@ def train(train_loader, model, criterion, optimizer, epoch, stage, args):
 
     # measure data loading time
     data_time.update(time.time() - end)
-    #self supervised mode
-    if args.mode == "preTrain":
-    	target = input
+
     if args.gpu >= 0:
     	input = input.cuda(args.gpu, non_blocking=True)
     	target = target.cuda(args.gpu, non_blocking=True)
 
     # compute output
     output = model(input)
-    loss = criterion(output, target)
+    #self supervised mode
+    if args.mode == "preTrain":
+    	loss = criterion(output, input)
+    else:
+    	loss = criterion(output, target)
 
     # measure accuracy and record loss
     #acc1, acc5 = accuracy(output, target, topk=(1, 5))
@@ -304,9 +325,7 @@ def validate(val_loader, model, criterion, epoch, args, attacker=None, visualize
     end = time.time()
     # loop over validation set
     for i, (input, target) in enumerate(val_loader):
-      #self supervised mode
-      if args.mode == "preTrain":
-      	target = input	
+      
       if args.gpu >= 0:
         input = input.cuda(args.gpu, non_blocking=False)
         target = target.cuda(args.gpu, non_blocking=False)
@@ -319,21 +338,26 @@ def validate(val_loader, model, criterion, epoch, args, attacker=None, visualize
       		os.mkdir(file_folder)
       	inp = input.cpu()
       	out = output.cpu()
-      	torchvision.utils.save_image(inp, os.path.join(file_folder, "val_inp_" + str(i) +".jpg"))
-      	torchvision.utils.save_image(out, os.path.join(file_folder, "val_out_" + str(i) +".jpg"))
+      	torchvision.utils.save_image(inp, os.path.join(file_folder, "inp.jpg"))#"val_inp_" + str(i) +".jpg"))
+      	torchvision.utils.save_image(out, os.path.join(file_folder, "out.jpg"))#"val_out_" + str(i) +".jpg"))
       else:
       	file_folder = "../imgSegOutput/"
       	if not os.path.exists(file_folder):
       		os.mkdir(file_folder)
       	inp = input.cpu()
       	out = output.cpu()
-      	torchvision.utils.save_image(inp, os.path.join(file_folder, "val_inp_" + str(i) +".jpg"))
-      	torchvision.utils.save_image(out, os.path.join(file_folder, "val_out_" + str(i) +".png"))
-      loss = criterion(output, target)
+      	torchvision.utils.save_image(inp, os.path.join(file_folder, "inp.jpg"))#"val_inp_" + str(i) +".jpg"))
+      	torchvision.utils.save_image(out, os.path.join(file_folder, "out.png"))#"val_out_" + str(i) +".png"))
+
+      #self supervised mode
+      if args.mode == "preTrain":
+      	loss = criterion(output, input)
+      else:
+      	loss = criterion(output, target)
 
       # measure accuracy and record loss
       #acc = accuracy(output, target)
-      losses.update(loss, input.size(0))
+      losses.update(loss.item(), input.size(0))
 
       # measure elapsed time
       batch_time.update(time.time() - end)
