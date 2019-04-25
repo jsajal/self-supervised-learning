@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 
 #################################################################################
-# Autoencoder implemented as UNet
+# Autoencoder
 #################################################################################
 
 class SelfSupervised(nn.Module):
@@ -220,60 +220,98 @@ class ImageSegmentation(nn.Module):
       ('down5_2',conv_op(1024, 1024, kernel_size=3, stride=1, padding=1)), # [-1, 1024, 32, 32]
       ('relu2',nn.ReLU(inplace=True)),
     ]))
-    self.down5._modules["down5_1"].weight = torch.nn.Parameter(initial_param['down5.1.weight'])
-    self.down5._modules["down5_1"].bias  = torch.nn.Parameter(initial_param['down5.1.bias'])
-    self.down5._modules["down5_2"].weight = torch.nn.Parameter(initial_param['down5.3.weight'])
-    self.down5._modules["down5_2"].bias  = torch.nn.Parameter(initial_param['down5.3.bias'])
+    #self.down5._modules["down5_1"].weight = torch.nn.Parameter(initial_param['down5.1.weight'])
+    #self.down5._modules["down5_1"].bias  = torch.nn.Parameter(initial_param['down5.1.bias'])
+    #self.down5._modules["down5_2"].weight = torch.nn.Parameter(initial_param['down5.3.weight'])
+    #self.down5._modules["down5_2"].bias  = torch.nn.Parameter(initial_param['down5.3.bias'])
     
-    self.up1 = nn.Sequential(
+    self.up1 = nn.Sequential(OrderedDict([
       #upSample
-      nn.ConvTranspose2d(1024, 512, 2, 2), # [-1, 512, 64, 64]
-    )
-    self.up1conv = nn.Sequential(
+      ('up1',nn.Upsample(scale_factor=2, mode='bilinear')), # [-1, 1024, 64, 64]
+      ('up1_1',conv_op(1024, 512, kernel_size=1, stride=1, padding=0)), # [-1, 512, 64, 64]
+    ]))
+    #self.up1._modules["up1_1"].weight = torch.nn.Parameter(initial_param['up1.1.weight'])
+    #self.up1._modules["up1_1"].bias  = torch.nn.Parameter(initial_param['up1.1.bias'])
+
+    self.up1conv = nn.Sequential(OrderedDict([
       #conv block
-      conv_op(1024, 512, kernel_size=3, stride=1, padding=1), # [-1, 512, 64, 64]
-      nn.ReLU(inplace=True),
-      conv_op(512, 512, kernel_size=3, stride=1, padding=1), # [-1, 512, 64, 64]
-      nn.ReLU(inplace=True), 
-    )
-    self.up2 = nn.Sequential(
+      ('up1conv_1',conv_op(1024, 512, kernel_size=3, stride=1, padding=1)), # [-1, 512, 64, 64]
+      ('relu1',nn.ReLU(inplace=True)),
+      ('up1conv_2',conv_op(512, 512, kernel_size=3, stride=1, padding=1)), # [-1, 512, 64, 64]
+      ('relu2',nn.ReLU(inplace=True)), 
+    ]))
+    self.up1conv._modules["up1conv_1"].weight = torch.nn.Parameter(initial_param['up1conv.0.weight'])
+    self.up1conv._modules["up1conv_1"].bias  = torch.nn.Parameter(initial_param['up1conv.0.bias'])
+    self.up1conv._modules["up1conv_2"].weight = torch.nn.Parameter(initial_param['up1conv.2.weight'])
+    self.up1conv._modules["up1conv_2"].bias  = torch.nn.Parameter(initial_param['up1conv.2.bias'])
+
+    self.up2 = nn.Sequential(OrderedDict([
       #upSample
-      nn.ConvTranspose2d(512, 256, 2, 2), # [-1, 256, 128, 128]
-    )
-    self.up2conv = nn.Sequential(
+      ('up2',nn.Upsample(scale_factor=2, mode='bilinear')), # [-1, 512, 128, 128]
+      ('up2_2',conv_op(512, 256, kernel_size=1, stride=1, padding=0)), # [-1, 256, 128, 128]
+    ]))
+    #self.up2._modules["up2_2"].weight = torch.nn.Parameter(initial_param['up2.1.weight'])
+    #self.up2._modules["up2_2"].bias  = torch.nn.Parameter(initial_param['up2.1.bias'])
+
+    self.up2conv = nn.Sequential(OrderedDict([
       #conv block
-      conv_op(512, 256, kernel_size=3, stride=1, padding=1), # [-1, 256, 128, 128]
-      nn.ReLU(inplace=True),
-      conv_op(256, 256, kernel_size=3, stride=1, padding=1), # [-1, 256, 128, 128]
-      nn.ReLU(inplace=True), 
-    )
-    self.up3 = nn.Sequential(
+      ('up2conv_1',conv_op(512, 256, kernel_size=3, stride=1, padding=1)), # [-1, 256, 128, 128]
+      ('relu1',nn.ReLU(inplace=True)),
+      ('up2conv_2',conv_op(256, 256, kernel_size=3, stride=1, padding=1)), # [-1, 256, 128, 128]
+      ('relu2',nn.ReLU(inplace=True)), 
+    ]))
+    self.up2conv._modules["up2conv_1"].weight = torch.nn.Parameter(initial_param['up2conv.0.weight'])
+    self.up2conv._modules["up2conv_1"].bias  = torch.nn.Parameter(initial_param['up2conv.0.bias'])
+    self.up2conv._modules["up2conv_2"].weight = torch.nn.Parameter(initial_param['up2conv.2.weight'])
+    self.up2conv._modules["up2conv_2"].bias  = torch.nn.Parameter(initial_param['up2conv.2.bias'])
+
+    self.up3 = nn.Sequential(OrderedDict([
       #upSample
-      nn.ConvTranspose2d(256, 128, 2, 2), # [-1, 128, 256, 256]
-    )
-    self.up3conv = nn.Sequential(
+      ('up3',nn.Upsample(scale_factor=2, mode='bilinear')), # [-1, 256, 256, 256]
+      ('up3_3',conv_op(256, 128, kernel_size=1, stride=1, padding=0)), # [-1, 128, 256, 256]
+    ]))
+    #self.up3._modules["up3_3"].weight = torch.nn.Parameter(initial_param['up3.1.weight'])
+    #self.up3._modules["up3_3"].bias  = torch.nn.Parameter(initial_param['up3.1.bias'])
+
+    self.up3conv = nn.Sequential(OrderedDict([
       #conv block
-      conv_op(256, 128, kernel_size=3, stride=1, padding=1), # [-1, 128, 256, 256]
-      nn.ReLU(inplace=True),
-      conv_op(128, 128, kernel_size=3, stride=1, padding=1), # [-1, 128, 256, 256]
-      nn.ReLU(inplace=True), 
-    )
-    self.up4 = nn.Sequential(
+      ('up3conv_1',conv_op(256, 128, kernel_size=3, stride=1, padding=1)), # [-1, 128, 256, 256]
+      ('relu1',nn.ReLU(inplace=True)),
+      ('up3conv_2',conv_op(128, 128, kernel_size=3, stride=1, padding=1)), # [-1, 128, 256, 256]
+      ('relu2',nn.ReLU(inplace=True)), 
+    ]))
+    self.up3conv._modules["up3conv_1"].weight = torch.nn.Parameter(initial_param['up3conv.0.weight'])
+    self.up3conv._modules["up3conv_1"].bias  = torch.nn.Parameter(initial_param['up3conv.0.bias'])
+    self.up3conv._modules["up3conv_2"].weight = torch.nn.Parameter(initial_param['up3conv.2.weight'])
+    self.up3conv._modules["up3conv_2"].bias  = torch.nn.Parameter(initial_param['up3conv.2.bias'])
+
+    self.up4 = nn.Sequential(OrderedDict([
       #upSample
-      nn.ConvTranspose2d(128, 64, 2, 2), # [-1, 64, 512, 512]
-    )
-    self.up4conv = nn.Sequential(
+      ('up4',nn.Upsample(scale_factor=2, mode='bilinear')), # [-1, 128, 512, 512]
+      ('up4_4',conv_op(128, 64, kernel_size=1, stride=1, padding=0)), # [-1, 64, 512, 512]
+    ]))
+    #self.up4._modules["up4_4"].weight = torch.nn.Parameter(initial_param['up4.1.weight'])
+    #self.up4._modules["up4_4"].bias  = torch.nn.Parameter(initial_param['up4.1.bias'])
+
+    self.up4conv = nn.Sequential(OrderedDict([
       #conv block
-      conv_op(128, 64, kernel_size=3, stride=1, padding=1), # [-1, 64, 512, 512]
-      nn.ReLU(inplace=True),
-      conv_op(64, 64, kernel_size=3, stride=1, padding=1), # [-1, 64, 512, 512]
-      nn.ReLU(inplace=True), 
-    )
-    self.output = nn.Sequential(
+      ('up4conv_1',conv_op(128, 64, kernel_size=3, stride=1, padding=1)), # [-1, 64, 512, 512]
+      ('relu1',nn.ReLU(inplace=True)),
+      ('up4conv_2',conv_op(64, 64, kernel_size=3, stride=1, padding=1)), # [-1, 64, 512, 512]
+      ('relu2',nn.ReLU(inplace=True)), 
+    ]))
+    #self.up4conv._modules["up4conv_1"].weight = torch.nn.Parameter(initial_param['up4conv.0.weight'])
+    #self.up4conv._modules["up4conv_1"].bias  = torch.nn.Parameter(initial_param['up4conv.0.bias'])
+    #self.up4conv._modules["up4conv_2"].weight = torch.nn.Parameter(initial_param['up4conv.2.weight'])
+    #self.up4conv._modules["up4conv_2"].bias  = torch.nn.Parameter(initial_param['up4conv.2.bias'])
+
+    self.output = nn.Sequential(OrderedDict([
       #conv block
-      conv_op(64, 1, kernel_size=1, stride=1, padding=0), # [-1, 1, 512, 512]
-      nn.Sigmoid(),
-    )
+      ('output',conv_op(64, 1, kernel_size=3, stride=1, padding=1)), # [-1, 1, 512, 512]
+      ('sig',nn.Sigmoid()),
+    ]))
+    #self.up4._modules["output"].weight = torch.nn.Parameter(initial_param['output.0.weight'])
+    #self.up4._modules["output"].bias  = torch.nn.Parameter(initial_param['output.0.bias'])
 
   def forward(self, x):
 
@@ -354,10 +392,11 @@ class UNet(nn.Module):
       conv_op(1024, 1024, kernel_size=3, stride=1, padding=1), # [-1, 1024, 32, 32]
       nn.ReLU(inplace=True),
     )
-    
+
     self.up1 = nn.Sequential(
       #upSample
-      nn.ConvTranspose2d(1024, 512, 2, 2), # [-1, 512, 64, 64]
+      nn.Upsample(scale_factor=2, mode='bilinear'), # [-1, 1024, 64, 64]
+      conv_op(1024, 512, kernel_size=1, stride=1, padding=0), # [-1, 512, 64, 64]
     )
     self.up1conv = nn.Sequential(
       #conv block
@@ -368,7 +407,8 @@ class UNet(nn.Module):
     )
     self.up2 = nn.Sequential(
       #upSample
-      nn.ConvTranspose2d(512, 256, 2, 2), # [-1, 256, 128, 128]
+      nn.Upsample(scale_factor=2, mode='bilinear'), # [-1, 512, 128, 128]
+      conv_op(512, 256, kernel_size=1, stride=1, padding=0), # [-1, 256, 128, 128]
     )
     self.up2conv = nn.Sequential(
       #conv block
@@ -379,7 +419,8 @@ class UNet(nn.Module):
     )
     self.up3 = nn.Sequential(
       #upSample
-      nn.ConvTranspose2d(256, 128, 2, 2), # [-1, 128, 256, 256]
+      nn.Upsample(scale_factor=2, mode='bilinear'), # [-1, 256, 256, 256]
+      conv_op(256, 128, kernel_size=1, stride=1, padding=0), # [-1, 128, 256, 256]
     )
     self.up3conv = nn.Sequential(
       #conv block
@@ -390,7 +431,8 @@ class UNet(nn.Module):
     )
     self.up4 = nn.Sequential(
       #upSample
-      nn.ConvTranspose2d(128, 64, 2, 2), # [-1, 64, 512, 512]
+      nn.Upsample(scale_factor=2, mode='bilinear'), # [-1, 128, 512, 512]
+      conv_op(128, 64, kernel_size=1, stride=1, padding=0), # [-1, 64, 512, 512]
     )
     self.up4conv = nn.Sequential(
       #conv block
@@ -401,7 +443,7 @@ class UNet(nn.Module):
     )
     self.output = nn.Sequential(
       #conv block
-      conv_op(64, 1, kernel_size=1, stride=1, padding=0), # [-1, 1, 512, 512]
+      conv_op(64, 1, kernel_size=3, stride=1, padding=1), # [-1, 1, 512, 512]
       nn.Sigmoid(),
     )
 
