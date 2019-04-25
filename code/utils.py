@@ -6,6 +6,8 @@ import cv2
 from PIL import Image
 import numpy as np
 
+import torch
+
 def load_image(path, flag):
   # load an RGB image
   if flag == 1:
@@ -51,3 +53,26 @@ class AverageMeter(object):
     self.sum += val * n
     self.count += n
     self.avg = self.sum / self.count
+
+class dice_loss(torch.nn.Module):
+	def __init__(self):
+		super(dice_loss,self).__init__()
+
+	def forward(self, input, target):
+		smooth = 1.
+		iflat = input.view(-1)
+		tflat = target.view(-1)
+		intersection = (iflat * tflat).sum()
+		return 1 - ((2. * intersection + smooth) /
+			(iflat.sum() + tflat.sum() + smooth))
+
+class jaccard_loss(torch.nn.Module):
+	def __init__(self):
+		super(jaccard_loss,self).__init__()
+
+	def forward(self, input, target):
+		iflat = input.view(-1)
+		tflat = target.view(-1)
+		intersection = (iflat * tflat).sum()
+		return 1 - ((intersection) /
+			(iflat.sum() + tflat.sum() - intersection))
