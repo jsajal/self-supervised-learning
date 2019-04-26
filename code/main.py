@@ -22,7 +22,7 @@ import torchvision
 
 # for visualization
 from tensorboardX import SummaryWriter
-from simplenet2 import default_model
+from inception import default_model
 from model import imgSeg_model
 from model import uNet_model
 
