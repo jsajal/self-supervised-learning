@@ -1,4 +1,3 @@
-Created 4 rotated versions of each input image and classifies them using inception network.
+Used pre-trained inception network as feature extractor and U-net on top for segmentation.
+run: python ./main.py ../data --mode=supTrain --epochs=90 --lr=0.00001 --weight-decay=0
 
--pretraning mode
--For running: python ./main.py ./data --mode=preTrain --epochs=90 --lr=0.00001 --weight-decay=0
